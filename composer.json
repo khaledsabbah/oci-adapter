@@ -2,8 +2,9 @@
     "name": "patrickriemer/oci-object-storage-adapter",
     "type": "library",
     "require": {
-        "php": "^8.1",
-        "league/flysystem": "^3.12"
+        "php": "^8.3",
+        "league/flysystem": "^3.12",
+        "illuminate/support": "^v11.9.2"
     },
     "require-dev": {
         "laravel/framework": "^v11.10"
@@ -11,7 +12,7 @@
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "Patrickriemer\\OciObjectStorageAdapter\\": "src/"
+            "PatrickRiemer\\OciObjectStorageAdapter\\": "src/"
         }
     },
     "authors": [
@@ -20,5 +21,5 @@
             "email": "patrick@riemer.ai"
         }
     ],
-    "minimum-stability": "stable"
+    "minimum-stability": "dev"
 }
