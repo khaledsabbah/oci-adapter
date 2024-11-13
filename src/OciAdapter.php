@@ -5,6 +5,7 @@ namespace PatrickRiemer\OciAdapter;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\RequestOptions;
+use Hitrov\OCI\Signer;
 use League\Flysystem\Config;
 use League\Flysystem\FileAttributes;
 use League\Flysystem\FilesystemAdapter;
@@ -17,22 +18,22 @@ class OciAdapter implements FilesystemAdapter
 
     public function fileExists(string $path): bool
     {
-        $exists = false;
+        $exists = null;
 
         $uri = sprintf('%s/o/%s', $this->getBucketUri(), $path);
 
+        $headers = $this->getHeaders($uri, 'HEAD');
+
         try {
-            $response = $this->getClient()->head($uri, [
-                'Authorization' => sprintf('Bearer: %s', $this->getToken()),
-                'Content-Type' => 'application/json',
-                'Accept' => 'application/json',
-            ]);
+            $response = $this->getClient()->head($uri, $headers);
 
             if ($response->getStatusCode() === 200) {
                 $exists = true;
+            } else if ($response->getStatusCode() === 404) {
+                $exists = false;
             }
         } catch (GuzzleException $exception) {
-            // TODO: Implement flysystem exception handling, refer to documentation
+            // TODO: Implement Flysystem exception handling
         }
 
         return $exists;
@@ -133,9 +134,36 @@ class OciAdapter implements FilesystemAdapter
         return $this->configuration['region'];
     }
 
+    private function getTenancy(): string
+    {
+        return $this->configuration['tenancy'];
+    }
+
+    private function getUser(): string
+    {
+        return $this->configuration['user'];
+    }
+
+    private function getFingerprint(): string
+    {
+        return $this->configuration['fingerprint'];
+    }
+
+    private function getPrivateKey(): string
+    {
+        return $this->configuration['path'];
+    }
+
     private function getHost(): string
     {
-        return sprintf('objectstorage.%s.oraclecloud.com', $this->getRegion());
+        return sprintf('https://objectstorage.%s.oraclecloud.com', $this->getRegion());
+    }
+
+    private function getClient(): Client
+    {
+        return new Client([
+            RequestOptions::ALLOW_REDIRECTS => false,
+        ]);
     }
 
     private function getBucketUri(): string
@@ -148,41 +176,19 @@ class OciAdapter implements FilesystemAdapter
         );
     }
 
-    private function getClient(): Client
+    private function getHeaders(string $uri, string $method, ?string $body = null): array
     {
-        return new Client([
-            RequestOptions::ALLOW_REDIRECTS => false,
-        ]);
-    }
+        $headers = [];
 
-    private function getToken(): ?string
-    {
-        $uri = sprintf('https://%s.identity.oraclecloud.com/20160918/token',
-            $this->getRegion(),
-        );
+        $signer = new Signer($this->getTenancy(), $this->getUser(), $this->getFingerprint(), $this->getPrivateKey());
 
-        $body = [
-            'grant_type' => 'client_credentials',
-            'client_id' => $this->configuration['key'],
-            'client_secret' => $this->configuration['secret'],
-            'scope' => 'https://objectstorage.%s.oraclecloud.com/'
-        ];
+        $strings = $signer->getHeaders($uri, $method, $body, 'application/json');
 
-        try {
-            $response = $this->getClient()->post($uri, [
-                'form_params' => $body,
-                'headers' => [
-                    'Content-Type' => 'application/x-www-form-urlencoded',
-                ],
-            ]);
-
-            $data = json_decode($response->getBody(), true);
-
-            return $data['access_token'];
-        } catch (GuzzleException $exception) {
-            // TODO: Throw exception
+        foreach ($strings as $item) {
+            $token = explode(': ', $item);
+            $headers[$token[0]] = $token[1];
         }
 
-        return null;
+        return $headers;
     }
 }
