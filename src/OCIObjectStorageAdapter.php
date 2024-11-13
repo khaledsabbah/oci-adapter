@@ -2,6 +2,9 @@
 
 namespace PatrickRiemer\OCIObjectStorageAdapter;
 
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\RequestOptions;
 use League\Flysystem\Config;
 use League\Flysystem\FileAttributes;
 use League\Flysystem\FilesystemAdapter;
@@ -14,7 +17,21 @@ class OCIObjectStorageAdapter implements FilesystemAdapter
 
     public function fileExists(string $path): bool
     {
-        // TODO: HeadObject
+        $exists = false;
+
+        $uri = sprintf('%s/o/%s', $this->getBucketUri(), $path);
+
+        try {
+            $response = $this->getClient()->request('HEAD', $uri);
+
+            if ($response->getStatusCode() === 200) {
+                $exists = true;
+            }
+        } catch (GuzzleException $exception) {
+            // TODO: Implement flysystem exception handling, refer to documentation
+        }
+
+        return $exists;
     }
 
     public function directoryExists(string $path): bool
@@ -95,5 +112,42 @@ class OCIObjectStorageAdapter implements FilesystemAdapter
     public function copy(string $source, string $destination, Config $config): void
     {
         // TODO: CopyObject
+    }
+
+    private function getNamespace(): string
+    {
+        return $this->configuration['namespace'];
+    }
+
+    private function getBucket(): string
+    {
+        return $this->configuration['bucket'];
+    }
+
+    private function getRegion(): string
+    {
+        return $this->configuration['region'];
+    }
+
+    private function getHost(): string
+    {
+        return sprintf('objectstorage.%s.oraclecloud.com', $this->getRegion());
+    }
+
+    private function getBucketUri(): string
+    {
+        return sprintf(
+            '%s/n/%s/b/%s',
+            $this->getHost(),
+            $this->getNamespace(),
+            $this->getBucket(),
+        );
+    }
+
+    private function getClient(): Client
+    {
+        return new Client([
+            RequestOptions::ALLOW_REDIRECTS => false,
+        ]);
     }
 }
