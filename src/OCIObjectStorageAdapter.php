@@ -1,17 +1,18 @@
 <?php
 
-namespace PatrickRiemer\OCIObjectStorageAdapter;
+namespace PatrickRiemer\OciObjectStorageAdapter;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\RequestOptions;
+use Illuminate\Contracts\Foundation\Application;
 use League\Flysystem\Config;
 use League\Flysystem\FileAttributes;
 use League\Flysystem\FilesystemAdapter;
 
-class OCIObjectStorageAdapter implements FilesystemAdapter
+class OciObjectStorageAdapter implements FilesystemAdapter
 {
-    public function __construct(private array $configuration)
+    public function __construct(readonly private array $configuration)
     {
     }
 
@@ -22,7 +23,11 @@ class OCIObjectStorageAdapter implements FilesystemAdapter
         $uri = sprintf('%s/o/%s', $this->getBucketUri(), $path);
 
         try {
-            $response = $this->getClient()->request('HEAD', $uri);
+            $response = $this->getClient()->head($uri, [
+                'Authorization' => sprintf('Bearer: %s', $this->getToken()),
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
+            ]);
 
             if ($response->getStatusCode() === 200) {
                 $exists = true;
@@ -149,5 +154,36 @@ class OCIObjectStorageAdapter implements FilesystemAdapter
         return new Client([
             RequestOptions::ALLOW_REDIRECTS => false,
         ]);
+    }
+
+    private function getToken(): ?string
+    {
+        $uri = sprintf('https://%s.identity.oraclecloud.com/20160918/token',
+            $this->getRegion(),
+        );
+
+        $body = [
+            'grant_type' => 'client_credentials',
+            'client_id' => $this->configuration['key'],
+            'client_secret' => $this->configuration['secret'],
+            'scope' => 'https://objectstorage.%s.oraclecloud.com/'
+        ];
+
+        try {
+            $response = $this->getClient()->post($uri, [
+                'form_params' => $body,
+                'headers' => [
+                    'Content-Type' => 'application/x-www-form-urlencoded',
+                ],
+            ]);
+
+            $data = json_decode($response->getBody(), true);
+
+            return $data['access_token'];
+        } catch (GuzzleException $exception) {
+            // TODO: Throw exception
+        }
+
+        return null;
     }
 }

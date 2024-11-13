@@ -7,7 +7,7 @@ use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\ServiceProvider;
 use League\Flysystem\Filesystem;
-use PatrickRiemer\OCIObjectStorageAdapter\OCIObjectStorageAdapter;
+use PatrickRiemer\OciObjectStorageAdapter\OciObjectStorageAdapter;
 
 class OneDriveAdapterServiceProvider extends ServiceProvider
 {
@@ -30,9 +30,7 @@ class OneDriveAdapterServiceProvider extends ServiceProvider
     public function boot()
     {
         Storage::extend('oci', function(Application $app, array $config) {
-
-            $adapter = new OCIObjectStorageAdapter($config);
-
+            $adapter = new OciObjectStorageAdapter($config);
             return new FilesystemAdapter(
                 new Filesystem($adapter, $config),
                 $adapter,
