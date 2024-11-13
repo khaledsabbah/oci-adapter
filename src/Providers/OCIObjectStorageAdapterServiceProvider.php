@@ -2,8 +2,12 @@
 
 namespace PatrickRiemer\OCIObjectStorageAdapter\Providers;
 
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\ServiceProvider;
+use League\Flysystem\Filesystem;
+use PatrickRiemer\OCIObjectStorageAdapter\OCIObjectStorageAdapter;
 
 class OneDriveAdapterServiceProvider extends ServiceProvider
 {
@@ -15,6 +19,7 @@ class OneDriveAdapterServiceProvider extends ServiceProvider
     public function register()
     {
         $this->mergeConfigFrom(__DIR__.'/../config/config.php', 'oci');
+        $this->mergeConfigFrom(__DIR__.'/../config/filesystem.php', 'filesystem');
     }
 
     /**
@@ -24,17 +29,15 @@ class OneDriveAdapterServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        Storage::extend('oci', function($app, $config) {
-            $options = [
-                'namespace' => $config['namespace'],
-                'credentials' => [
-                    'key'    => $config['key'],
-                    'secret' => $config['secret'],
-                ],
-                'region' => $config['region'],
-            ];
+        Storage::extend('oci', function(Application $app, array $config) {
 
-            // TODO: return adapter
+            $adapter = new OCIObjectStorageAdapter($config);
+
+            return new FilesystemAdapter(
+                new Filesystem($adapter, $config),
+                $adapter,
+                $config,
+            );
         });
     }
 }
