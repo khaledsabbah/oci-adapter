@@ -1,16 +1,15 @@
 <?php
 
-namespace PatrickRiemer\OciObjectStorageAdapter;
+namespace PatrickRiemer\OciAdapter;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\RequestOptions;
-use Illuminate\Contracts\Foundation\Application;
 use League\Flysystem\Config;
 use League\Flysystem\FileAttributes;
 use League\Flysystem\FilesystemAdapter;
 
-class OciObjectStorageAdapter implements FilesystemAdapter
+class OciAdapter implements FilesystemAdapter
 {
     public function __construct(readonly private array $configuration)
     {

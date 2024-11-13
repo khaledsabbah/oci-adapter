@@ -1,5 +1,5 @@
 {
-    "name": "patrickriemer/oci-object-storage-adapter",
+    "name": "patrickriemer/oci-adapter",
     "type": "library",
     "require": {
         "php": "^8.3",
@@ -12,7 +12,7 @@
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "PatrickRiemer\\OciObjectStorageAdapter\\": "src/"
+            "PatrickRiemer\\OciAdapter\\": "src/"
         }
     },
     "authors": [
