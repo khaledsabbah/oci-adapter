@@ -4,7 +4,8 @@
     "require": {
         "php": "^8.3",
         "league/flysystem": "^3.12",
-        "illuminate/support": "^v11.9.2"
+        "illuminate/support": "^v11.9.2",
+        "hitrov/oci-api-php-request-sign": "dev-main"
     },
     "require-dev": {
         "laravel/framework": "^v11.10"
