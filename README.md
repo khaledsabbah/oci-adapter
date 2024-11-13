@@ -13,14 +13,24 @@ Required environment variables:
 ```bash
 OCI_NAMESPACE=
 OCI_REGION=
-OCI_KEY=
-OCI_SECRET=
 OCI_BUCKET=
 OCI_TENANCY_ID=
 OCI_USER_ID=
 OCI_KEY_FINGERPRINT=
 OCI_KEY_PATH=
 ```
+
+Example values:
+
+```bash
+OCI_REGION=ap-singapore-1
+OCI_BUCKET=my-bucket-name
+OCI_TENANCY_ID=ocid1.tenancy.oc1..{longstring}
+OCI_USER_ID=ocid1.user.oc1..{longstring}
+OCI_KEY_FINGERPRINT=11:12:aa:ab:ac:1d:dd:aa:11:99:22:21:f3:79:12:1b
+OCI_KEY_PATH=./oci.pem
+```
+
 
 Implemented methods:
 
