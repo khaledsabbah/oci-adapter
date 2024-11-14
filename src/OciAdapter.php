@@ -203,7 +203,10 @@ class OciAdapter implements FilesystemAdapter
 
     public function move(string $source, string $destination, Config $config): void
     {
-        // TODO: CopyObject, DeleteObject
+        $this->copy($source, $destination, $config);
+
+        // TODO: copy only creates a copy request but does not copy the file directly.
+        // That means that the delete will delete the file before it can be copied
     }
 
     public function copy(string $source, string $destination, Config $config): void
@@ -226,7 +229,7 @@ class OciAdapter implements FilesystemAdapter
                 'body' => $body
             ]);
             if ($response->getStatusCode() === 202) {
-                ray('successfully moved');
+                ray('successfully copied');
             } else {
                 ray($response)->red();
             }
