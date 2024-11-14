@@ -86,7 +86,30 @@ class OciAdapter implements FilesystemAdapter
 
     public function read(string $path): string
     {
-        // TODO: GetObject
+        $exists = null;
+
+        $uri = sprintf('%s/o/%s', $this->getBucketUri(), urlencode($path));
+
+        $headers = $this->getHeaders($uri, 'GET');
+
+        $client = $this->getClient();
+
+        $request = new Request('GET', $uri, $headers);
+
+        try {
+            $response = $client->send($request);
+
+            if ($response->getStatusCode() === 200) {
+                return $response->getBody();
+            } else if ($response->getStatusCode() === 404) {
+                $exists = false;
+            }
+        } catch (GuzzleException $exception) {
+            $exists = false;
+            // TODO: Implement Flysystem exception handling
+        }
+
+        return $exists;
     }
 
     public function readStream(string $path)
