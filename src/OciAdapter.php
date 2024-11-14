@@ -96,7 +96,23 @@ class OciAdapter implements FilesystemAdapter
 
     public function delete(string $path): void
     {
-        // TODO: DeleteObject
+        $uri = sprintf('%s/o/%s', $this->getBucketUri(), urlencode($path));
+
+        $headers = $this->getHeaders($uri, 'DELETE');
+
+        $client = $this->getClient();
+
+        $request = new Request('DELETE', $uri, $headers);
+
+        try {
+            $response = $client->send($request);
+
+            if ($response->getStatusCode() === 204) {
+
+            }
+        } catch (GuzzleException $exception) {
+            // TODO: Implement Flysystem exception handling
+        }
     }
 
     public function deleteDirectory(string $path): void
