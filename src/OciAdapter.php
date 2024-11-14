@@ -2,6 +2,7 @@
 
 namespace PatrickRiemer\OciAdapter;
 
+use Carbon\Carbon;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Psr7\Request;
@@ -125,7 +126,30 @@ class OciAdapter implements FilesystemAdapter
 
     public function lastModified(string $path): FileAttributes
     {
-        // TODO: HeadObject
+        $uri = sprintf('%s/o/%s', $this->getBucketUri(), urlencode($path));
+
+        $headers = $this->getHeaders($uri, 'HEAD');
+
+        try {
+            $response = $this->getClient()->head($uri, [
+                'headers' => array_merge($headers, [
+                    'Content-Type' => 'application/json',
+                ]),
+            ]);
+            if ($response->getStatusCode() === 200) {
+
+                $file_attributes = new FileAttributes(path: $path, lastModified: Carbon::parse($response->getHeader('last-modified')[0])->timestamp);
+
+                return $file_attributes;
+            } else {
+                ray($response)->green();
+            }
+        } catch (GuzzleException $exception) {
+            ray($exception)->red();
+            // TODO: Implement Flysystem exception handling
+        }
+
+        return new FileAttributes($path);
     }
 
     public function fileSize(string $path): FileAttributes
@@ -168,7 +192,32 @@ class OciAdapter implements FilesystemAdapter
 
     public function copy(string $source, string $destination, Config $config): void
     {
-        // TODO: CopyObject
+        $uri = sprintf('%s/actions/copyObject', $this->getBucketUri());
+
+        $body = json_encode([
+            'sourceObjectName' => $source,
+            'destinationRegion' => $this->getRegion(),
+            'destinationNamespace' => $this->getNamespace(),
+            'destinationBucket' => $this->getBucket(),
+            'destinationObjectName' => $destination,
+        ]);
+
+        $headers = $this->getHeaders($uri, 'POST', $body);
+
+        try {
+            $response = $this->getClient()->post($uri, [
+                'headers' => array_merge($headers, []),
+                'body' => $body
+            ]);
+            if ($response->getStatusCode() === 202) {
+                ray('successfully moved');
+            } else {
+                ray($response)->red();
+            }
+        } catch (GuzzleException $exception) {
+            ray($exception)->red();
+            // TODO: Implement Flysystem exception handling
+        }
     }
 
     private function getNamespace(): string
@@ -229,13 +278,13 @@ class OciAdapter implements FilesystemAdapter
         );
     }
 
-    private function getHeaders(string $uri, string $method): array
+    private function getHeaders(string $uri, string $method, ?string $body = null): array
     {
         $headers = [];
 
         $signer = new Signer($this->getTenancy(), $this->getUser(), $this->getFingerprint(), $this->getPrivateKey());
 
-        $strings = $signer->getHeaders($uri, $method);
+        $strings = $signer->getHeaders($uri, $method, $body, 'application/json');
 
         foreach ($strings as $item) {
             $token = explode(': ', $item);
