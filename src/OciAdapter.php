@@ -12,10 +12,11 @@ use League\Flysystem\Config;
 use League\Flysystem\FileAttributes;
 use League\Flysystem\FilesystemAdapter;
 use League\Flysystem\UnableToReadFile;
+use League\Flysystem\UnableToWriteFile;
 
-class OciAdapter implements FilesystemAdapter
+readonly class OciAdapter implements FilesystemAdapter
 {
-    public function __construct(readonly private OciClient $client)
+    public function __construct(private OciClient $client)
     {
     }
 
@@ -51,30 +52,52 @@ class OciAdapter implements FilesystemAdapter
 
     public function directoryExists(string $path): bool
     {
-        return $this->fileExists($path);
+        $uri = sprintf('%s/o/%s', $this->client->getBucketUri(), urlencode($path));
+
+        try {
+            $response = $this->client->send($uri, 'HEAD');
+
+            switch ($response->getStatusCode()) {
+                case 200:
+                    $exists = true;
+                    break;
+
+                case 404:
+                    $exists = false;
+                    break;
+
+                default:
+                    throw new UnableToReadFile('Invalid return code', $response->getStatusCode());
+            }
+        } catch (GuzzleException $exception) {
+            if ($exception->getCode() === 404) {
+                $exists = false;
+            } else {
+                throw new UnableToReadFile($exception->getMessage(), $exception->getCode(), $exception);
+            }
+        }
+
+        return $exists;
     }
 
     public function write(string $path, string $contents, Config $config): void
     {
-        $uri = sprintf('%s/o/%s', $this->getBucketUri(), urlencode($path));
-
-        $headers = $this->getHeaders($uri, 'PUT', $contents, 'application/octet-stream');
+        $uri = sprintf('%s/o/%s', $this->client->getBucketUri(), urlencode($path));
 
         try {
-            $response = $this->getClient()->put($uri, [
-                'headers' => array_merge($headers, [
-                    'storage-tier' => $this->getStorageTier(),
-                ]),
-                'body' => $contents,
-            ]);
-            if ($response->getStatusCode() === 200) {
+            $response = $this->client->send(
+                $uri,
+                'PUT',
+                ['storage-tier' => $this->client->getStorageTier()],
+                $contents,
+                'application/octet-stream'
+            );
 
-            } else {
-                ray($response)->red();
+            if ($response->getStatusCode() !== 200) {
+                throw new UnableToWriteFile('Unable to write file', $response->getStatusCode());
             }
         } catch (GuzzleException $exception) {
-            ray($exception)->red();
-            // TODO: Implement Flysystem exception handling
+            throw new UnableToWriteFile($exception->getMessage(), $exception->getCode(), $exception);
         }
     }
 
@@ -85,30 +108,19 @@ class OciAdapter implements FilesystemAdapter
 
     public function read(string $path): string
     {
-        $exists = null;
-
-        $uri = sprintf('%s/o/%s', $this->getBucketUri(), urlencode($path));
-
-        $headers = $this->getHeaders($uri, 'GET');
-
-        $client = $this->getClient();
-
-        $request = new Request('GET', $uri, $headers);
+        $uri = sprintf('%s/o/%s', $this->client->getBucketUri(), urlencode($path));
 
         try {
-            $response = $client->send($request);
+            $response = $this->client->send($uri, 'GET');
 
             if ($response->getStatusCode() === 200) {
-                return $response->getBody();
-            } else if ($response->getStatusCode() === 404) {
-                $exists = false;
+                return $response->getBody()->getContents();
+            } else {
+                throw new UnableToReadFile('Unable to read file', $response->getStatusCode());
             }
         } catch (GuzzleException $exception) {
-            $exists = false;
-            // TODO: Implement Flysystem exception handling
+            throw new UnableToReadFile($exception->getMessage(), $exception->getCode(), $exception);
         }
-
-        return $exists;
     }
 
     public function readStream(string $path)
@@ -118,22 +130,20 @@ class OciAdapter implements FilesystemAdapter
 
     public function delete(string $path): void
     {
-        $uri = sprintf('%s/o/%s', $this->getBucketUri(), urlencode($path));
-
-        $headers = $this->getHeaders($uri, 'DELETE');
-
-        $client = $this->getClient();
-
-        $request = new Request('DELETE', $uri, $headers);
+        $uri = sprintf('%s/o/%s', $this->client->getBucketUri(), urlencode($path));
 
         try {
-            $response = $client->send($request);
+            $response = $this->client->send($uri, 'DELETE');
 
-            if ($response->getStatusCode() === 204) {
+            switch ($response->getStatusCode()) {
+                case 204:
+                    break;
 
+                default:
+                    throw new UnableToReadFile('Unable to read file', $response->getStatusCode());
             }
         } catch (GuzzleException $exception) {
-            // TODO: Implement Flysystem exception handling
+            throw new UnableToReadFile($exception->getMessage(), $exception->getCode(), $exception);
         }
     }
 
@@ -159,86 +169,68 @@ class OciAdapter implements FilesystemAdapter
 
     public function mimeType(string $path): FileAttributes
     {
-        $uri = sprintf('%s/o/%s', $this->getBucketUri(), urlencode($path));
-
-        $headers = $this->getHeaders($uri, 'HEAD');
+        $uri = sprintf('%s/o/%s', $this->client->getBucketUri(), urlencode($path));
 
         try {
-            $response = $this->getClient()->head($uri, [
-                'headers' => array_merge($headers, [
-                    'Content-Type' => 'application/json',
-                ]),
-            ]);
-            if ($response->getStatusCode() === 200) {
+            $response = $this->client->send($uri, 'HEAD');
 
-                $file_attributes = new FileAttributes(path: $path, mimeType: $response->getHeader('Content-Type')[0]);
+            switch ($response->getStatusCode()) {
+                case 200:
+                    $file_attributes = new FileAttributes(path: $path, mimeType: $response->getHeader('Content-Type')[0]);
+                    break;
 
-                return $file_attributes;
-            } else {
-                ray($response)->green();
+                default:
+                    throw new UnableToReadFile('Unable to read file', $response->getStatusCode());
             }
         } catch (GuzzleException $exception) {
-            ray($exception)->red();
-            // TODO: Implement Flysystem exception handling
+            throw new UnableToReadFile($exception->getMessage(), $exception->getCode(), $exception);
         }
 
-        return new FileAttributes($path);
+        return $file_attributes;
     }
 
     public function lastModified(string $path): FileAttributes
     {
-        $uri = sprintf('%s/o/%s', $this->getBucketUri(), urlencode($path));
-
-        $headers = $this->getHeaders($uri, 'HEAD');
+        $uri = sprintf('%s/o/%s', $this->client->getBucketUri(), urlencode($path));
 
         try {
-            $response = $this->getClient()->head($uri, [
-                'headers' => array_merge($headers, [
-                    'Content-Type' => 'application/json',
-                ]),
-            ]);
-            if ($response->getStatusCode() === 200) {
+            $response = $this->client->send($uri, 'HEAD');
 
-                $file_attributes = new FileAttributes(path: $path, lastModified: Carbon::parse($response->getHeader('last-modified')[0])->timestamp);
+            switch ($response->getStatusCode()) {
+                case 200:
+                    $file_attributes = new FileAttributes(path: $path, lastModified: Carbon::parse($response->getHeader('last-modified')[0])->timestamp);
+                    break;
 
-                return $file_attributes;
-            } else {
-                ray($response)->green();
+                default:
+                    throw new UnableToReadFile('Unable to read file', $response->getStatusCode());
             }
         } catch (GuzzleException $exception) {
-            ray($exception)->red();
-            // TODO: Implement Flysystem exception handling
+            throw new UnableToReadFile($exception->getMessage(), $exception->getCode(), $exception);
         }
 
-        return new FileAttributes($path);
+        return $file_attributes;
     }
 
     public function fileSize(string $path): FileAttributes
     {
-        $uri = sprintf('%s/o/%s', $this->getBucketUri(), urlencode($path));
-
-        $headers = $this->getHeaders($uri, 'HEAD');
+        $uri = sprintf('%s/o/%s', $this->client->getBucketUri(), urlencode($path));
 
         try {
-            $response = $this->getClient()->head($uri, [
-                'headers' => array_merge($headers, [
-                    'Content-Type' => 'application/json',
-                ]),
-            ]);
-            if ($response->getStatusCode() === 200) {
+            $response = $this->client->send($uri, 'HEAD');
 
-                $file_attributes = new FileAttributes(path: $path, fileSize: $response->getHeader('Content-Length')[0]);
+            switch ($response->getStatusCode()) {
+                case 200:
+                    $file_attributes = new FileAttributes(path: $path, fileSize: $response->getHeader('Content-Length')[0]);
+                    break;
 
-                return $file_attributes;
-            } else {
-                ray($response)->green();
+                default:
+                    throw new UnableToReadFile('Unable to read file', $response->getStatusCode());
             }
         } catch (GuzzleException $exception) {
-            ray($exception)->red();
-            // TODO: Implement Flysystem exception handling
+            throw new UnableToReadFile($exception->getMessage(), $exception->getCode(), $exception);
         }
 
-        return new FileAttributes($path);
+        return $file_attributes;
     }
 
     public function listContents(string $path, bool $deep): iterable
@@ -248,39 +240,42 @@ class OciAdapter implements FilesystemAdapter
 
     public function move(string $source, string $destination, Config $config): void
     {
-        $this->copy($source, $destination, $config);
-
         // TODO: copy only creates a copy request but does not copy the file directly.
         // That means that the delete will delete the file before it can be copied
+
+        $uri = sprintf('%s/actions/copyObject', $this->client->getBucketUri());
+
+        $body = json_encode([
+            'sourceObjectName' => $source,
+            'destinationRegion' => $this->client->getRegion(),
+            'destinationNamespace' => $this->client->getNamespace(),
+            'destinationBucket' => $this->client->getBucket(),
+            'destinationObjectName' => $destination,
+        ]);
+
+        try {
+            $this->client->send($uri, 'POST', [], $body);
+        } catch (GuzzleException $exception) {
+            throw new UnableToReadFile($exception->getMessage(), $exception->getCode(), $exception);
+        }
     }
 
     public function copy(string $source, string $destination, Config $config): void
     {
-        $uri = sprintf('%s/actions/copyObject', $this->getBucketUri());
+        $uri = sprintf('%s/actions/copyObject', $this->client->getBucketUri());
 
         $body = json_encode([
             'sourceObjectName' => $source,
-            'destinationRegion' => $this->getRegion(),
-            'destinationNamespace' => $this->getNamespace(),
-            'destinationBucket' => $this->getBucket(),
+            'destinationRegion' => $this->client->getRegion(),
+            'destinationNamespace' => $this->client->getNamespace(),
+            'destinationBucket' => $this->client->getBucket(),
             'destinationObjectName' => $destination,
         ]);
 
-        $headers = $this->getHeaders($uri, 'POST', $body);
-
         try {
-            $response = $this->getClient()->post($uri, [
-                'headers' => array_merge($headers, []),
-                'body' => $body
-            ]);
-            if ($response->getStatusCode() === 202) {
-                ray('successfully copied');
-            } else {
-                ray($response)->red();
-            }
+            $this->client->send($uri, 'POST', [], $body);
         } catch (GuzzleException $exception) {
-            ray($exception)->red();
-            // TODO: Implement Flysystem exception handling
+            throw new UnableToReadFile($exception->getMessage(), $exception->getCode(), $exception);
         }
     }
 }

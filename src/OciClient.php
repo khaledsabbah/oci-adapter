@@ -50,7 +50,7 @@ readonly class OciClient
         );
     }
 
-    public function send(string $uri, string $method, array $header = [], string $content_type = 'application/json', ?string $body = null)
+    public function send(string $uri, string $method, array $header = [], ?string $body = null, ?string $content_type = 'application/json')
     {
         $authorization_headers = $this->getAuthorizationHeaders($uri, $method, $body, $content_type);
 
@@ -58,7 +58,7 @@ readonly class OciClient
             RequestOptions::ALLOW_REDIRECTS => false,
         ]);
 
-        $request = new Request($method, $uri, array_merge($header, $authorization_headers));
+        $request = new Request($method, $uri, array_merge($header, $authorization_headers), $body);
 
         return $client->send($request);
     }
