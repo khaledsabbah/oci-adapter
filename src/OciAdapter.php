@@ -137,7 +137,30 @@ class OciAdapter implements FilesystemAdapter
 
     public function mimeType(string $path): FileAttributes
     {
-        // TODO: HeadObject
+        $uri = sprintf('%s/o/%s', $this->getBucketUri(), urlencode($path));
+
+        $headers = $this->getHeaders($uri, 'HEAD');
+
+        try {
+            $response = $this->getClient()->head($uri, [
+                'headers' => array_merge($headers, [
+                    'Content-Type' => 'application/json',
+                ]),
+            ]);
+            if ($response->getStatusCode() === 200) {
+
+                $file_attributes = new FileAttributes(path: $path, mimeType: $response->getHeader('Content-Type')[0]);
+
+                return $file_attributes;
+            } else {
+                ray($response)->green();
+            }
+        } catch (GuzzleException $exception) {
+            ray($exception)->red();
+            // TODO: Implement Flysystem exception handling
+        }
+
+        return new FileAttributes($path);
     }
 
     public function lastModified(string $path): FileAttributes

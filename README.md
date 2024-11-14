@@ -31,12 +31,20 @@ OCI_KEY_FINGERPRINT=11:12:aa:ab:ac:1d:dd:aa:11:99:22:21:f3:79:12:1b
 OCI_KEY_PATH=./oci.pem
 ```
 
+Unexpected behaviour:
+
+The move() method will NOT move the object, but copy it instead.
+The reason for this is that the copy API will create a copy request, but the execution will be delayed. If a call of delete is send directly after copy, the object will be deleted before the copy request can be executed.
 
 Implemented methods:
 
 - fileExists
 - directoryExists
 - fileSize
+- delete
+- copy
+- lastModified
+- mimeType
 
 TODO:
 
@@ -44,16 +52,13 @@ TODO:
 - writeStream
 - read
 - readStream
-- delete
 - deleteDirectory
 - createDirectory
 - setVisibility
 - visibility
-- mimeType
-- lastModified
+
 - listContents
 - move
-- copy
 - temporary signed urls
 
 
