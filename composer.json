@@ -23,5 +23,12 @@
             "email": "patrick@riemer.ai"
         }
     ],
-    "minimum-stability": "dev"
+    "minimum-stability": "dev",
+    "extra": {
+        "laravel": {
+            "providers": [
+                "PatrickRiemer\\OciAdapter\\OciAdapterServiceProvider"
+            ]
+        }
+    }
 }

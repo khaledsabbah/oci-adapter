@@ -11,36 +11,39 @@ use Hitrov\OCI\Signer;
 use League\Flysystem\Config;
 use League\Flysystem\FileAttributes;
 use League\Flysystem\FilesystemAdapter;
+use League\Flysystem\UnableToReadFile;
 
 class OciAdapter implements FilesystemAdapter
 {
-    public function __construct(readonly private array $configuration)
+    public function __construct(readonly private OciClient $client)
     {
     }
 
     public function fileExists(string $path): bool
     {
-        $exists = null;
-
-        $uri = sprintf('%s/o/%s', $this->getBucketUri(), urlencode($path));
-
-        $headers = $this->getHeaders($uri, 'HEAD');
-
-        $client = $this->getClient();
-
-        $request = new Request('HEAD', $uri, $headers);
+        $uri = sprintf('%s/o/%s', $this->client->getBucketUri(), urlencode($path));
 
         try {
-            $response = $client->send($request);
+            $response = $this->client->send($uri, 'HEAD');
 
-            if ($response->getStatusCode() === 200) {
-                $exists = true;
-            } else if ($response->getStatusCode() === 404) {
-                $exists = false;
+            switch ($response->getStatusCode()) {
+                case 200:
+                    $exists = true;
+                    break;
+
+                case 404:
+                    $exists = false;
+                    break;
+
+                default:
+                    throw new UnableToReadFile('Invalid return code', $response->getStatusCode());
             }
         } catch (GuzzleException $exception) {
-            $exists = false;
-            // TODO: Implement Flysystem exception handling
+            if ($exception->getCode() === 404) {
+                $exists = false;
+            } else {
+                throw new UnableToReadFile($exception->getMessage(), $exception->getCode(), $exception);
+            }
         }
 
         return $exists;
@@ -48,30 +51,7 @@ class OciAdapter implements FilesystemAdapter
 
     public function directoryExists(string $path): bool
     {
-        $exists = null;
-
-        $uri = sprintf('%s/o/%s', $this->getBucketUri(), urlencode($path));
-
-        $headers = $this->getHeaders($uri, 'HEAD');
-
-        $client = $this->getClient();
-
-        $request = new Request('HEAD', $uri, $headers);
-
-        try {
-            $response = $client->send($request);
-
-            if ($response->getStatusCode() === 200) {
-                $exists = true;
-            } else if ($response->getStatusCode() === 404) {
-                $exists = false;
-            }
-        } catch (GuzzleException $exception) {
-            $exists = false;
-            // TODO: Implement Flysystem exception handling
-        }
-
-        return $exists;
+        return $this->fileExists($path);
     }
 
     public function write(string $path, string $contents, Config $config): void
@@ -302,84 +282,5 @@ class OciAdapter implements FilesystemAdapter
             ray($exception)->red();
             // TODO: Implement Flysystem exception handling
         }
-    }
-
-    private function getNamespace(): string
-    {
-        return $this->configuration['namespace'];
-    }
-
-    private function getBucket(): string
-    {
-        return $this->configuration['bucket'];
-    }
-
-    private function getRegion(): string
-    {
-        return $this->configuration['region'];
-    }
-
-    private function getTenancy(): string
-    {
-        return $this->configuration['tenancy'];
-    }
-
-    private function getUser(): string
-    {
-        return $this->configuration['user'];
-    }
-
-    private function getFingerprint(): string
-    {
-        return $this->configuration['fingerprint'];
-    }
-
-    private function getPrivateKey(): string
-    {
-        return $this->configuration['path'];
-    }
-
-    private function getHost(): string
-    {
-        return sprintf('https://objectstorage.%s.oraclecloud.com', $this->getRegion());
-    }
-
-    private function getClient(): Client
-    {
-        return new Client([
-            RequestOptions::ALLOW_REDIRECTS => false,
-            RequestOptions::VERIFY => false,
-        ]);
-    }
-
-    private function getBucketUri(): string
-    {
-        return sprintf(
-            '%s/n/%s/b/%s',
-            $this->getHost(),
-            $this->getNamespace(),
-            $this->getBucket(),
-        );
-    }
-
-    private function getStorageTier(): string
-    {
-        return $this->configuration['storage_tier'];
-    }
-
-    private function getHeaders(string $uri, string $method, ?string $body = null, string $content_type = 'application/json'): array
-    {
-        $headers = [];
-
-        $signer = new Signer($this->getTenancy(), $this->getUser(), $this->getFingerprint(), $this->getPrivateKey());
-
-        $strings = $signer->getHeaders($uri, $method, $body, $content_type);
-
-        foreach ($strings as $item) {
-            $token = explode(': ', $item);
-            $headers[ucfirst($token[0])] = trim($token[1]);
-        }
-
-        return $headers;
     }
 }
