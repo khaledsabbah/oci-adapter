@@ -35,10 +35,11 @@ OCI_KEY_PATH=./oci.pem
 Implemented methods:
 
 - fileExists
+- directoryExists
+- fileSize
 
 TODO:
 
-- directoryExists
 - write
 - writeStream
 - read
@@ -50,7 +51,6 @@ TODO:
 - visibility
 - mimeType
 - lastModified
-- fileSize
 - listContents
 - move
 - copy

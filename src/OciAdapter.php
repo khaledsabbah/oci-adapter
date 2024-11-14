@@ -4,6 +4,7 @@ namespace PatrickRiemer\OciAdapter;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\RequestOptions;
 use Hitrov\OCI\Signer;
 use League\Flysystem\Config;
@@ -20,12 +21,16 @@ class OciAdapter implements FilesystemAdapter
     {
         $exists = null;
 
-        $uri = sprintf('%s/o/%s', $this->getBucketUri(), $path);
+        $uri = sprintf('%s/o/%s', $this->getBucketUri(), urlencode($path));
 
         $headers = $this->getHeaders($uri, 'HEAD');
 
+        $client = $this->getClient();
+
+        $request = new Request('HEAD', $uri, $headers);
+
         try {
-            $response = $this->getClient()->head($uri, $headers);
+            $response = $client->send($request);
 
             if ($response->getStatusCode() === 200) {
                 $exists = true;
@@ -33,6 +38,7 @@ class OciAdapter implements FilesystemAdapter
                 $exists = false;
             }
         } catch (GuzzleException $exception) {
+            $exists = false;
             // TODO: Implement Flysystem exception handling
         }
 
@@ -41,7 +47,30 @@ class OciAdapter implements FilesystemAdapter
 
     public function directoryExists(string $path): bool
     {
-        // TODO: Implement directoryExists() method.
+        $exists = null;
+
+        $uri = sprintf('%s/o/%s', $this->getBucketUri(), urlencode($path));
+
+        $headers = $this->getHeaders($uri, 'HEAD');
+
+        $client = $this->getClient();
+
+        $request = new Request('HEAD', $uri, $headers);
+
+        try {
+            $response = $client->send($request);
+
+            if ($response->getStatusCode() === 200) {
+                $exists = true;
+            } else if ($response->getStatusCode() === 404) {
+                $exists = false;
+            }
+        } catch (GuzzleException $exception) {
+            $exists = false;
+            // TODO: Implement Flysystem exception handling
+        }
+
+        return $exists;
     }
 
     public function write(string $path, string $contents, Config $config): void
@@ -101,7 +130,30 @@ class OciAdapter implements FilesystemAdapter
 
     public function fileSize(string $path): FileAttributes
     {
-        // TODO: HeadObject
+        $uri = sprintf('%s/o/%s', $this->getBucketUri(), urlencode($path));
+
+        $headers = $this->getHeaders($uri, 'HEAD');
+
+        try {
+            $response = $this->getClient()->head($uri, [
+                'headers' => array_merge($headers, [
+                    'Content-Type' => 'application/json',
+                ]),
+            ]);
+            if ($response->getStatusCode() === 200) {
+
+                $file_attributes = new FileAttributes(path: $path, fileSize: $response->getHeader('Content-Length')[0]);
+
+                return $file_attributes;
+            } else {
+                ray($response)->green();
+            }
+        } catch (GuzzleException $exception) {
+            ray($exception)->red();
+            // TODO: Implement Flysystem exception handling
+        }
+
+        return new FileAttributes($path);
     }
 
     public function listContents(string $path, bool $deep): iterable
@@ -163,6 +215,7 @@ class OciAdapter implements FilesystemAdapter
     {
         return new Client([
             RequestOptions::ALLOW_REDIRECTS => false,
+            RequestOptions::VERIFY => false,
         ]);
     }
 
@@ -176,17 +229,17 @@ class OciAdapter implements FilesystemAdapter
         );
     }
 
-    private function getHeaders(string $uri, string $method, ?string $body = null): array
+    private function getHeaders(string $uri, string $method): array
     {
         $headers = [];
 
         $signer = new Signer($this->getTenancy(), $this->getUser(), $this->getFingerprint(), $this->getPrivateKey());
 
-        $strings = $signer->getHeaders($uri, $method, $body, 'application/json');
+        $strings = $signer->getHeaders($uri, $method);
 
         foreach ($strings as $item) {
             $token = explode(': ', $item);
-            $headers[$token[0]] = $token[1];
+            $headers[ucfirst($token[0])] = trim($token[1]);
         }
 
         return $headers;

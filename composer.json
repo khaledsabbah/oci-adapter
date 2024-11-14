@@ -8,7 +8,8 @@
         "hitrov/oci-api-php-request-sign": "dev-main"
     },
     "require-dev": {
-        "laravel/framework": "^v11.10"
+        "laravel/framework": "^v11.10",
+        "spatie/ray": "^1.0@dev"
     },
     "license": "MIT",
     "autoload": {
