@@ -18,6 +18,7 @@ OCI_TENANCY_ID=
 OCI_USER_ID=
 OCI_KEY_FINGERPRINT=
 OCI_KEY_PATH=
+OCI_STORAGE_TIER=
 ```
 
 Example values:
@@ -29,6 +30,7 @@ OCI_TENANCY_ID=ocid1.tenancy.oc1..{longstring}
 OCI_USER_ID=ocid1.user.oc1..{longstring}
 OCI_KEY_FINGERPRINT=11:12:aa:ab:ac:1d:dd:aa:11:99:22:21:f3:79:12:1b
 OCI_KEY_PATH=./oci.pem
+OCI_STORAGE_TIER=Standard
 ```
 
 Unexpected behaviour:
@@ -45,20 +47,19 @@ Implemented methods:
 - copy
 - lastModified
 - mimeType
+- write
+- read
+- move
 
 TODO:
 
-- write
 - writeStream
-- read
 - readStream
 - deleteDirectory
 - createDirectory
 - setVisibility
 - visibility
-
 - listContents
-- move
 - temporary signed urls
 
 

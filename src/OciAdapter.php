@@ -76,12 +76,31 @@ class OciAdapter implements FilesystemAdapter
 
     public function write(string $path, string $contents, Config $config): void
     {
-        // TODO: PutObject
+        $uri = sprintf('%s/o/%s', $this->getBucketUri(), urlencode($path));
+
+        $headers = $this->getHeaders($uri, 'PUT', $contents, 'application/octet-stream');
+
+        try {
+            $response = $this->getClient()->put($uri, [
+                'headers' => array_merge($headers, [
+                    'storage-tier' => $this->getStorageTier(),
+                ]),
+                'body' => $contents,
+            ]);
+            if ($response->getStatusCode() === 200) {
+
+            } else {
+                ray($response)->red();
+            }
+        } catch (GuzzleException $exception) {
+            ray($exception)->red();
+            // TODO: Implement Flysystem exception handling
+        }
     }
 
     public function writeStream(string $path, $contents, Config $config): void
     {
-        // TODO: PutObject
+        throw new \Exception('Not implemented yet.');
     }
 
     public function read(string $path): string
@@ -114,7 +133,7 @@ class OciAdapter implements FilesystemAdapter
 
     public function readStream(string $path)
     {
-        // TODO: GetObject
+        throw new \Exception('Not implemented yet.');
     }
 
     public function delete(string $path): void
@@ -140,22 +159,22 @@ class OciAdapter implements FilesystemAdapter
 
     public function deleteDirectory(string $path): void
     {
-        // TODO: Implement deleteDirectory() method.
+        throw new \Exception('Not implemented yet.');
     }
 
     public function createDirectory(string $path, Config $config): void
     {
-        // TODO: Implement createDirectory() method.
+        throw new \Exception('Not implemented yet.');
     }
 
     public function setVisibility(string $path, string $visibility): void
     {
-        // TODO: Implement setVisibility() method.
+        throw new \Exception('Not implemented yet.');
     }
 
     public function visibility(string $path): FileAttributes
     {
-        // TODO: Implement visibility() method.
+        throw new \Exception('Not implemented yet.');
     }
 
     public function mimeType(string $path): FileAttributes
@@ -244,7 +263,7 @@ class OciAdapter implements FilesystemAdapter
 
     public function listContents(string $path, bool $deep): iterable
     {
-        // TODO: ListObjects
+        throw new \Exception('Not implemented yet.');
     }
 
     public function move(string $source, string $destination, Config $config): void
@@ -343,13 +362,18 @@ class OciAdapter implements FilesystemAdapter
         );
     }
 
-    private function getHeaders(string $uri, string $method, ?string $body = null): array
+    private function getStorageTier(): string
+    {
+        return $this->configuration['storage_tier'];
+    }
+
+    private function getHeaders(string $uri, string $method, ?string $body = null, string $content_type = 'application/json'): array
     {
         $headers = [];
 
         $signer = new Signer($this->getTenancy(), $this->getUser(), $this->getFingerprint(), $this->getPrivateKey());
 
-        $strings = $signer->getHeaders($uri, $method, $body, 'application/json');
+        $strings = $signer->getHeaders($uri, $method, $body, $content_type);
 
         foreach ($strings as $item) {
             $token = explode(': ', $item);
