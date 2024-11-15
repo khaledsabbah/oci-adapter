@@ -1,6 +1,6 @@
 # OCI Adapter
 
-WARNING: This package is under development and does not offer all methods for the Storage facade yet. Do not use this package in production.
+This package is an adapter for the Oracle Cloud Infrastructure Object Storage API for the Flysystem for Laravel.
 
 Install package:
 
@@ -33,40 +33,8 @@ OCI_KEY_PATH=./oci.pem
 OCI_STORAGE_TIER=Standard
 ```
 
-Unexpected behaviour:
+## Technical notes
 
-The move() method will NOT move the object, but copy it instead.
-The reason for this is that the copy API will create a copy request, but the execution will be delayed. If a call of delete is send directly after copy, the object will be deleted before the copy request can be executed.
-
-Implemented methods:
-
-- fileExists
-- directoryExists
-- fileSize
-- delete
-- copy
-- lastModified
-- mimeType
-- write
-- read
-- move
-- writeStream
-- temporary signed urls
-- deleteDirectory
-- createDirectory
-- listContents
-
-TODO:
-
-- readStream
-- setVisibility
-- visibility
-
-
-
-
-The purpose of this repository is to create a flysystem adapter for OCI object storage.
-
-Read more about the background:
-
-https://patricksriemer.medium.com/laravel-and-object-storage-on-oci-e07b2197d709
+1. Temporary URLs leverage OCIs pre-authenticated requests. When a temporaryUrl is not called, the pre-authenticated request will remain even if it is expired. It is advisable to create a scheduler that is automatically cleaning up expired requests.
+2. The move operation will only copy the object as it will be processed within a work request. As the work request is processed asynchronously an immediate delete operation after a copy, will delete the object before it can be copied. A possible workaround is to create a temporary directory for uploaded files and cleaning it up automatically with a lifecycle policy.
+3. THe PHP extension ext-fileinfo is required so that the mime type can be detected from the file stream.

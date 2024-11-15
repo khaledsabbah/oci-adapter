@@ -142,7 +142,7 @@ readonly class OciAdapter implements FilesystemAdapter
 
     public function readStream(string $path)
     {
-        throw new \Exception('Not implemented yet.');
+        throw new \Exception('Adapter does not support read stream.');
     }
 
     public function delete(string $path): void
@@ -176,12 +176,12 @@ readonly class OciAdapter implements FilesystemAdapter
 
     public function setVisibility(string $path, string $visibility): void
     {
-        throw new \Exception('Not implemented yet.');
+        throw new \Exception('Adapter does not support visibility.');
     }
 
     public function visibility(string $path): FileAttributes
     {
-        throw new \Exception('Not implemented yet.');
+        throw new \Exception('Adapter does not support visibility.');
     }
 
     public function mimeType(string $path): FileAttributes
