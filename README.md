@@ -51,6 +51,7 @@ Implemented methods:
 - read
 - move
 - writeStream
+- temporary signed urls
 
 TODO:
 
@@ -60,7 +61,6 @@ TODO:
 - setVisibility
 - visibility
 - listContents
-- temporary signed urls
 - detect mime type for file uploads
 
 

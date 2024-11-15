@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace PatrickRiemer\OciAdapter;
 
+use Carbon\Carbon;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\RequestOptions;
 use Hitrov\OCI\Signer;
@@ -53,9 +55,7 @@ readonly class OciClient
     public function send(string $uri, string $method, array $header = [], ?string $body = null, ?string $content_type = 'application/json')
     {
         $authorization_headers = $this->getAuthorizationHeaders($uri, $method, $body, $content_type);
-ray($method);
-ray($uri);
-ray($authorization_headers);
+
         $client = new Client([
             RequestOptions::ALLOW_REDIRECTS => false,
         ]);
@@ -63,6 +63,33 @@ ray($authorization_headers);
         $request = new Request($method, $uri, array_merge($header, $authorization_headers), $body);
 
         return $client->send($request);
+    }
+
+    public function createTemporaryUrl(string $path, Carbon $expires_at): string
+    {
+        $uri = sprintf('%s/p/', $this->getBucketUri());
+
+        $body = json_encode([
+            'accessType' => 'ObjectRead',
+            'name' => \Ramsey\Uuid\Uuid::uuid7()->toString(),
+            'objectName' => $path,
+            'timeExpires' => $expires_at->toIso8601String(),
+        ]);
+
+        try {
+            $response = $this->send($uri, 'POST', [], $body);
+
+            if ($response->getStatusCode() === 200) {
+                $pre_authenticated_request = json_decode($response->getBody()->getContents());
+
+                $temporary_url = $pre_authenticated_request->fullPath;
+            }
+
+        } catch (GuzzleException $exception) {
+
+        }
+
+        return $temporary_url;
     }
 
     public function getFingerprint(): string
