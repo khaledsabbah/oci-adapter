@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Psr7\Stream;
 use GuzzleHttp\RequestOptions;
 use Hitrov\OCI\Signer;
 use League\Flysystem\Config;
@@ -103,7 +104,29 @@ readonly class OciAdapter implements FilesystemAdapter
 
     public function writeStream(string $path, $contents, Config $config): void
     {
-        throw new \Exception('Not implemented yet.');
+        $uri = sprintf('%s/o/%s', $this->client->getBucketUri(), urlencode($path));
+
+        $tempStream = fopen('php://temp', 'r+');
+        stream_copy_to_stream($contents, $tempStream);
+        rewind($tempStream);
+        $body = stream_get_contents($tempStream);
+        fclose($tempStream);
+
+        try {
+            $response = $this->client->send(
+                $uri,
+                'PUT',
+                ['storage-tier' => $this->client->getStorageTier()],
+                $body,
+                'image/png'
+            );
+
+            if ($response->getStatusCode() !== 200) {
+                throw new UnableToWriteFile('Unable to write file', $response->getStatusCode());
+            }
+        } catch (GuzzleException $exception) {
+            throw new UnableToWriteFile($exception->getMessage(), $exception->getCode(), $exception);
+        }
     }
 
     public function read(string $path): string

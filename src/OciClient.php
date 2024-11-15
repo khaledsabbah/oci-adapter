@@ -53,7 +53,9 @@ readonly class OciClient
     public function send(string $uri, string $method, array $header = [], ?string $body = null, ?string $content_type = 'application/json')
     {
         $authorization_headers = $this->getAuthorizationHeaders($uri, $method, $body, $content_type);
-
+ray($method);
+ray($uri);
+ray($authorization_headers);
         $client = new Client([
             RequestOptions::ALLOW_REDIRECTS => false,
         ]);
@@ -117,19 +119,5 @@ readonly class OciClient
     public function getUser(): string
     {
         return $this->config['user_id'];
-    }
-
-
-    public static function createPreauthenticatedRequest(string $path, \Carbon\Carbon $expires): string
-    {
-        // Signature: POST /n/{namespaceName}/b/{bucketName}/p/
-        $access_type = 'ObjectRead';
-
-        $body = json_encode([
-            'accessType' => $access_type,
-            'name' => \Ramsey\Uuid\Uuid::uuid7()->toString(),
-            'objectName' => $path,
-            'timeExpires' => $expires->toIso8601String(),
-        ]);
     }
 }

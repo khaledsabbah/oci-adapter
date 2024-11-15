@@ -50,10 +50,10 @@ Implemented methods:
 - write
 - read
 - move
+- writeStream
 
 TODO:
 
-- writeStream
 - readStream
 - deleteDirectory
 - createDirectory
@@ -61,6 +61,7 @@ TODO:
 - visibility
 - listContents
 - temporary signed urls
+- detect mime type for file uploads
 
 
 
