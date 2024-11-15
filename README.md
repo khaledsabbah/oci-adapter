@@ -52,12 +52,12 @@ Implemented methods:
 - move
 - writeStream
 - temporary signed urls
+- deleteDirectory
+- createDirectory
 
 TODO:
 
 - readStream
-- deleteDirectory
-- createDirectory
 - setVisibility
 - visibility
 - listContents

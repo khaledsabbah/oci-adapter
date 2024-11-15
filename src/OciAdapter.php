@@ -165,12 +165,12 @@ readonly class OciAdapter implements FilesystemAdapter
 
     public function deleteDirectory(string $path): void
     {
-        throw new \Exception('Not implemented yet.');
+        $this->delete($path . '/');
     }
 
     public function createDirectory(string $path, Config $config): void
     {
-        throw new \Exception('Not implemented yet.');
+        $this->write($path . '/', '', $config);
     }
 
     public function setVisibility(string $path, string $visibility): void
