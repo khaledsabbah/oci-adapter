@@ -54,13 +54,14 @@ Implemented methods:
 - temporary signed urls
 - deleteDirectory
 - createDirectory
+- listContents
 
 TODO:
 
 - readStream
 - setVisibility
 - visibility
-- listContents
+
 
 
 

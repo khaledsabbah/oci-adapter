@@ -5,6 +5,7 @@ namespace PatrickRiemer\OciAdapter;
 use Carbon\Carbon;
 use GuzzleHttp\Exception\GuzzleException;
 use League\Flysystem\Config;
+use League\Flysystem\DirectoryAttributes;
 use League\Flysystem\FileAttributes;
 use League\Flysystem\FilesystemAdapter;
 use League\Flysystem\UnableToReadFile;
@@ -251,7 +252,32 @@ readonly class OciAdapter implements FilesystemAdapter
 
     public function listContents(string $path, bool $deep): iterable
     {
-        throw new \Exception('Not implemented yet.');
+        $files = collect([]);
+
+        $uri = sprintf('%s/o', $this->client->getBucketUri());
+
+        try {
+            $response = $this->client->send($uri, 'GET');
+
+            switch ($response->getStatusCode()) {
+                case 200:
+
+                    $data = json_decode($response->getBody()->getContents());
+
+                    foreach ($data->objects as $object) {
+                        $files->add(new FileAttributes($object->name));
+                    }
+
+                    break;
+
+                default:
+                    throw new UnableToReadFile('Unable to read file', $response->getStatusCode());
+            }
+        } catch (GuzzleException $exception) {
+            throw new UnableToReadFile($exception->getMessage(), $exception->getCode(), $exception);
+        }
+
+        return $files;
     }
 
     public function move(string $source, string $destination, Config $config): void
