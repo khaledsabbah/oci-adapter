@@ -3,12 +3,7 @@
 namespace PatrickRiemer\OciAdapter;
 
 use Carbon\Carbon;
-use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
-use GuzzleHttp\Psr7\Request;
-use GuzzleHttp\Psr7\Stream;
-use GuzzleHttp\RequestOptions;
-use Hitrov\OCI\Signer;
 use League\Flysystem\Config;
 use League\Flysystem\FileAttributes;
 use League\Flysystem\FilesystemAdapter;
@@ -106,11 +101,9 @@ readonly class OciAdapter implements FilesystemAdapter
     {
         $uri = sprintf('%s/o/%s', $this->client->getBucketUri(), urlencode($path));
 
-        $tempStream = fopen('php://temp', 'r+');
-        stream_copy_to_stream($contents, $tempStream);
-        rewind($tempStream);
-        $body = stream_get_contents($tempStream);
-        fclose($tempStream);
+        $body = stream_get_contents($contents);
+
+        $mime = finfo_buffer(finfo_open(FILEINFO_MIME_TYPE), $body);
 
         try {
             $response = $this->client->send(
@@ -118,7 +111,7 @@ readonly class OciAdapter implements FilesystemAdapter
                 'PUT',
                 ['storage-tier' => $this->client->getStorageTier()],
                 $body,
-                'image/png'
+                $mime,
             );
 
             if ($response->getStatusCode() !== 200) {

@@ -61,7 +61,6 @@ TODO:
 - setVisibility
 - visibility
 - listContents
-- detect mime type for file uploads
 
 
 
