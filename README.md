@@ -2,6 +2,10 @@
 
 This package is an adapter for the Oracle Cloud Infrastructure Object Storage API for the Flysystem for Laravel.
 
+Integration guide:
+
+https://medium.com/@patricksriemer/using-oci-object-storage-in-laravel-15f501f747a9
+
 Install package:
 
 ```bash
