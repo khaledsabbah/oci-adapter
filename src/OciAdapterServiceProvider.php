@@ -3,15 +3,10 @@
 namespace KhaledGamal\OciAdapter;
 
 use Carbon\Carbon;
-use DateTimeInterface;
-use GuzzleHttp\Psr7\Request;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\ServiceProvider;
-use League\Flysystem\Config;
 use League\Flysystem\Filesystem;
-use League\Flysystem\UrlGeneration\TemporaryUrlGenerator;
-use PatrickRiemer\OciAdapter;
 
 class OciAdapterServiceProvider extends ServiceProvider
 {
@@ -31,7 +26,7 @@ class OciAdapterServiceProvider extends ServiceProvider
         Storage::extend('oci', function ($app, $config) {
 
             $client = OciClient::createWithConfiguration($config);
-            $adapter = new OciAdapter\OciAdapter($client);
+            $adapter = new OciAdapter($client);
 
             return new FilesystemAdapter(new Filesystem(
                 adapter: $adapter,
