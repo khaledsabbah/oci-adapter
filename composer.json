@@ -1,5 +1,5 @@
 {
-    "name": "khaledgamal/oci-adapter",
+    "name": "kgcoder/oci-adapter",
     "type": "library",
     "require": {
         "php": "^8.3",
