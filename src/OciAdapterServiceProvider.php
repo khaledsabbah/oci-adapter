@@ -1,6 +1,6 @@
 <?php
 
-namespace PatrickRiemer\OciAdapter;
+namespace KhaledGamal\OciAdapter;
 
 use Carbon\Carbon;
 use DateTimeInterface;

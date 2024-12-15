@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PatrickRiemer\OciAdapter;
+namespace KhaledGamal\OciAdapter;
 
 use Carbon\Carbon;
 use GuzzleHttp\Client;

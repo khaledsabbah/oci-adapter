@@ -1,6 +1,6 @@
 <?php
 
-namespace PatrickRiemer\OciAdapter;
+namespace KhaledGamal\OciAdapter;
 
 use Carbon\Carbon;
 use GuzzleHttp\Exception\GuzzleException;
@@ -13,9 +13,26 @@ use League\Flysystem\UnableToWriteFile;
 
 readonly class OciAdapter implements FilesystemAdapter
 {
-    public function __construct(private OciClient $client)
+    public function __construct(protected OciClient $client)
     {
     }
+
+	/**
+	 * @return OciClient
+	 */
+	public function getClient(): OciClient
+	{
+		return $this->client;
+	}
+
+	/**
+	 * @param string $path
+	 * @return string
+	 */
+	public function getUrl(string $path): string
+	{
+		return sprintf('%s/o/%s', $this->client->getBucketUri(), urlencode($path));
+	}
 
     public function fileExists(string $path): bool
     {
