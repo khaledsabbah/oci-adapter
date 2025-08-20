@@ -4,9 +4,9 @@
     "require": {
         "php": "^8.3",
       "ext-fileinfo": "*",
-        "hitrov/oci-api-php-request-sign": "dev-main",
         "illuminate/support": "*",
-        "league/flysystem": "3.x-dev"
+        "league/flysystem": "3.x-dev",
+        "hitrov/oci-api-php-request-sign": "v1.2.4"
     },
     "license": "MIT",
     "autoload": {
