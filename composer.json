@@ -5,8 +5,8 @@
         "php": "^8.3",
       "ext-fileinfo": "*",
         "illuminate/support": "*",
-        "league/flysystem": "3.x-dev",
-        "hitrov/oci-api-php-request-sign": "v1.2.4"
+        "hitrov/oci-api-php-request-sign": "v1.2.4",
+        "league/flysystem": "3.30.0"
     },
     "license": "MIT",
     "autoload": {

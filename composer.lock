@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "be1085792c580b7a282d879b15cd01cc",
+    "content-hash": "56aeb1557ba4d5c489e88460dda65a28",
     "packages": [
         {
             "name": "brick/math",
@@ -1640,7 +1640,7 @@
         },
         {
             "name": "league/flysystem",
-            "version": "3.x-dev",
+            "version": "3.30.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/thephpleague/flysystem.git",
@@ -1685,7 +1685,6 @@
                 "phpunit/phpunit": "^9.5.11|^10.0",
                 "sabre/dav": "^4.6.0"
             },
-            "default-branch": true,
             "type": "library",
             "autoload": {
                 "psr-4": {
@@ -5777,8 +5776,7 @@
     "aliases": [],
     "minimum-stability": "dev",
     "stability-flags": {
-        "laravel/framework": 20,
-        "league/flysystem": 20
+        "laravel/framework": 20
     },
     "prefer-stable": false,
     "prefer-lowest": false,
